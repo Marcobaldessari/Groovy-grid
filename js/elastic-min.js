@@ -35,7 +35,7 @@ folder_wave.add(options, "tension", .01, 1);
 
 folder_wave.add(options, "dampen", .002, .2);
 
-folder_wave.add(options, "k", .0025, .25);
+folder_wave.add(options, "k", .0025, .11);
 
 lines = [];
 
@@ -110,17 +110,24 @@ function spring(e) {
 }
 
 document.addEventListener("mousemove", function(e) {
-    mouse = new function() {
-        bounds = canvas.getBoundingClientRect();
-        this.x = e.clientX - bounds.left;
-        this.y = e.clientY - bounds.top;
-        this.segment = Math.floor(options.res / h * this.y);
-    }();
+    bounds = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - bounds.left;
+    mouse.y = e.clientY - bounds.top;
+    mouse.segment = Math.floor(options.res / h * mouse.y);
+    console.log(mouse.segment);
     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
     }
 }, false);
 
 canvas.addEventListener("click", function() {
-    lines[3].segments[mouse.segment].speed = -20;
+    for (var e = 0; e < lines.length; e++) {
+        lines[e].segments[mouse.segment].speed = lines[e].segments[mouse.segment].speed + 3e3 / (lines[e].posX - mouse.x);
+    }
 }, false);
+
+var mouse = function() {
+    this.x;
+    this.y;
+    this.segment;
+};

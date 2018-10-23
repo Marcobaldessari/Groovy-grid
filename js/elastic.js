@@ -33,7 +33,7 @@ folder_colors.addColor(options, 'bg_color');
 folder_wave.add(options, 'res', 5, 300);
 folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
-folder_wave.add(options, 'k', 0.0025, 0.25);
+folder_wave.add(options, 'k', 0.0025, 0.110);
 
 
 lines = [];
@@ -56,10 +56,8 @@ function animate() {
 }
     
 function Line(posX) {
-
     this.posX = posX;
     this.segments = [];
-
     for (var i = 0; i < options.res; i++) {
         this.segments[i] = new spring(posX);
     }
@@ -117,28 +115,29 @@ function spring(posX) {
     }
 }
 
+
+
 document.addEventListener('mousemove', function (e) {
-
-    mouse = new (function () {
         bounds = canvas.getBoundingClientRect();
-
-        this.x = e.clientX - bounds.left;
-        this.y = e.clientY - bounds.top;
-        this.segment = Math.floor((options.res / h) * this.y);
-
-    });
+        mouse.x = e.clientX - bounds.left;
+        mouse.y = e.clientY - bounds.top;
+        mouse.segment = Math.floor((options.res / h) * mouse.y);
+        console.log(mouse.segment);
 
     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
-        // console.log(segments[mouse.col].speed);
     }
 }, false);
 
 canvas.addEventListener('click', function () {
-    lines[3].segments[mouse.segment].speed = -20;
-
+    for (var i = 0; i < lines.length; i++) {
+        lines[i].segments[mouse.segment].speed = lines[i].segments[mouse.segment].speed + 3000 / (lines[i].posX - mouse.x);
+    }
 }, false);
 
 
-
-
+var mouse = function() {
+    this.x;
+    this.y;
+    this.segment;
+}
