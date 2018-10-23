@@ -2085,7 +2085,7 @@
 			"flagValue": -1
 			},
 		"compress": {
-			"active": 1,
+			"active": 0,
 			"flagValue": -1
 			},
 		"conditionals": {
