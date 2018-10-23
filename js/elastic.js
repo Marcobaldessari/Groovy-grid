@@ -7,11 +7,23 @@ var c = document.getElementById('canvas'),
     drops = [],
     shower = false,
     water = [],
-    water_level = 50;
-res = 50,
+    water_level = 250;
+res = 100,
     k = 0.0025,
     tension = 0.01
-dampen = 0.02;
+    dampen = 0.02;
+
+    c.width = w;
+    c.height = h;
+    
+
+
+for (var i = 0; i < res; i++) {
+    water[i] = new spring();
+}
+
+animate();
+
 
 dropplet = function (x, y) {
     this.x = x;
@@ -33,8 +45,8 @@ dropplet = function (x, y) {
         } else {
             this.destroy();
             if (this.col >= 0 && this.col < water.length) {
-                water_level += 0.025;
-                water[this.col].speed = 1;
+                water_level += 0.1;
+                water[this.col].speed = 5;
             }
         }
     }
@@ -43,7 +55,7 @@ dropplet = function (x, y) {
     }
 }
 
-spring = function () {
+function spring() {
     this.height = h - water_level;
     this.speed = 0;
     this.update = function () {
@@ -54,7 +66,7 @@ spring = function () {
     }
 }
 
-animate = function () {
+function animate() {
     ctx.clearRect(0, 0, w, h);
     for (var i = 0; i < drops.length; i++) {
         drops[i].update();
@@ -90,49 +102,43 @@ animate = function () {
         }
     }
 
-    var lingrad = ctx.createLinearGradient(0, 0, 0, h);
-    lingrad.addColorStop(0, '#28d9e2');
-    lingrad.addColorStop(1, '#116691')
-
-    ctx.fillStyle = lingrad;
-
+    ctx.strokeStyle = "black";
+    
     ctx.beginPath();
     ctx.moveTo(0, water[0].height);
 
     for (var i = 0; i < water.length; i++) {
         ctx.lineTo((i + 1) * (w / res), water[i].height);
     }
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.lineTo(0, water[water.length - 1].height);
-    ctx.fill();
+    ctx.stroke();
+
+    window.requestAnimationFrame(animate);
 
 }
 
-c.width = w;
-c.height = h;
-
-c.addEventListener('mousemove', function (e) {
-    mouse = {
-        'x': e.clientX - c.getBoundingClientRect().left,
-        'y': e.clientY - c.getBoundingClientRect().top
+document.addEventListener('mousemove', function (e) {
+    
+    mouse = new (function(){
+        this.x = e.clientX - c.getBoundingClientRect().left;
+        this.y = e.clientY - c.getBoundingClientRect().top;
+        this.col = Math.floor((res / w) * this.x);
+    });
+    
+    // mouse = {
+    //     'x': e.clientX - c.getBoundingClientRect().left,
+    //     'y': e.clientY - c.getBoundingClientRect().top,
+    //     'col': Math.floor((res / w) * x)
+    // }
+    console.log(mouse.col);
+    if (mouse.y == Math.floor(water[5].height)) {
+        water[5].speed = water[5].speed + 10;
     }
 }, false);
 
-c.addEventListener('mousedown', function () {
-    shower = setInterval(function () {
+c.addEventListener('click', function () {
         drops.push(new dropplet(mouse.x, mouse.y));
-    }, 1);
 }, false);
 
-document.addEventListener('mouseup', function () {
-    clearInterval(shower);
-}, false);
 
-for (var i = 0; i < res; i++) {
-    water[i] = new spring();
-}
 
-setInterval(function () {
-    animate();
-}, 60 / 1000);
+
