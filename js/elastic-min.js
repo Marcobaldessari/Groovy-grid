@@ -1,91 +1,126 @@
-var canvas = document.getElementById("canvas"), w = window.innerWidth, h = window.innerHeight, ctx = canvas.getContext("2d"), mouse, drops = [], shower = false, options, linePosition = 550;
+var canvas = document.getElementById("canvas"), mx, my, w = window.innerWidth, h = window.innerHeight, ctx = canvas.getContext("2d"), mouse, drops = [], shower = false, options, linePosition = 550;
 
 canvas.width = w;
 
 canvas.height = h;
 
 options = {
+    line_color: "#000000",
+    bg_color: "#FFFFFF",
     res: 100,
-    "options.k": .025,
     tension: .1,
     dampen: .02,
-    k: .025
+    k: .025,
+    columns: 8
 };
 
-line1 = new Line();
+var gui = new dat.GUI({
+    load: options,
+    preset: "Preset1"
+});
+
+var folder_colors = gui.addFolder("Colors");
+
+var folder_wave = gui.addFolder("Wave");
+
+gui.remember(options);
+
+folder_colors.addColor(options, "line_color");
+
+folder_colors.addColor(options, "bg_color");
+
+folder_wave.add(options, "res", 5, 300);
+
+folder_wave.add(options, "tension", .01, 1);
+
+folder_wave.add(options, "dampen", .002, .2);
+
+folder_wave.add(options, "k", .0025, .25);
+
+lines = [];
+
+for (var i = 0; i < options.columns - 1; i++) {
+    lines[i] = new Line((i + 1) * (w / options.columns));
+}
 
 animate();
 
 function animate() {
-    line1.update();
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = options.bg_color;
+    ctx.rect(0, 0, w, h);
+    ctx.fill();
+    for (var e = 0; e < options.columns - 1; e++) {
+        lines[e].update();
+    }
     window.requestAnimationFrame(animate);
 }
 
-function Line() {
-    this.water = [];
-    for (var t = 0; t < options.res; t++) {
-        this.water[t] = new spring();
+function Line(e) {
+    this.posX = e;
+    this.segments = [];
+    for (var s = 0; s < options.res; s++) {
+        this.segments[s] = new spring(e);
     }
     this.update = function() {
-        ctx.clearRect(0, 0, w, h);
-        var t;
-        for (t = 0; t < this.water.length; t++) {
-            this.water[t].update();
+        for (var e = 0; e < this.segments.length; e++) {
+            this.segments[e].update();
         }
-        var e = new Array(this.water.length);
-        var i = new Array(this.water.length);
+        var s = new Array(this.segments.length);
+        var t = new Array(this.segments.length);
         for (var n = 0; n < 8; n++) {
-            for (t = 0; t < this.water.length; t++) {
-                if (t > 0) {
-                    e[t] = options.k * (this.water[t].height - this.water[t - 1].height);
-                    this.water[t - 1].speed += e[t];
+            for (e = 0; e < this.segments.length; e++) {
+                if (e > 0) {
+                    s[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
+                    this.segments[e - 1].speed += s[e];
                 }
-                if (t < this.water.length - 1) {
-                    i[t] = options.k * (this.water[t].height - this.water[t + 1].height);
-                    this.water[t + 1].speed += i[t];
+                if (e < this.segments.length - 1) {
+                    t[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
+                    this.segments[e + 1].speed += t[e];
                 }
             }
-            for (t = 0; t < this.water[t].length; t++) {
-                if (t > 0) {
-                    this.water[t - 1].height += e[t];
+            for (e = 0; e < this.segments[e].length; e++) {
+                if (e > 0) {
+                    this.segments[e - 1].height += s[e];
                 }
-                if (t < water.length - 1) {
-                    this.water[t + 1].height += i[t];
+                if (e < segments.length - 1) {
+                    this.segments[e + 1].height += t[e];
                 }
             }
         }
-        ctx.strokeStyle = "black";
+        ctx.strokeStyle = options.line_color;
         ctx.beginPath();
-        ctx.moveTo(this.water[0].height, 0);
-        for (var t = 0; t < this.water.length; t++) {
-            ctx.lineTo(this.water[t].height, (t + 1) * (w / options.res));
+        ctx.moveTo(this.segments[0].height, 0);
+        for (var e = 0; e < this.segments.length; e++) {
+            ctx.lineTo(this.segments[e].height, (e + 1) * (h / options.res));
         }
         ctx.stroke();
     };
 }
 
-function spring() {
-    this.height = linePosition;
+function spring(e) {
+    this.posX = e;
+    this.height = this.posX;
     this.speed = 0;
     this.update = function() {
-        var t = linePosition - this.height;
-        this.speed += options.tension * t - this.speed * options.dampen;
+        var e = this.posX - this.height;
+        this.speed += options.tension * e - this.speed * options.dampen;
         this.height += this.speed;
     };
 }
 
-document.addEventListener("mousemove", function(t) {
+document.addEventListener("mousemove", function(e) {
     mouse = new function() {
-        this.x = t.clientX - canvas.getBoundingClientRect().left;
-        this.y = t.clientY - canvas.getBoundingClientRect().top;
-        this.col = Math.floor(options.res / h * this.y);
-        console.log(this.col);
+        bounds = canvas.getBoundingClientRect();
+        this.x = e.clientX - bounds.left;
+        this.y = e.clientY - bounds.top;
+        this.segment = Math.floor(options.res / h * this.y);
     }();
-    if (mouse.x == Math.floor(line1.water[5].height)) {
-        line1.water[mouse.col].speed = line1.water[mouse.col].speed + 10;
+    if (mouse.x == Math.floor(lines[3].segments[5].height)) {
+        lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
     }
 }, false);
 
 canvas.addEventListener("click", function() {
-    line1.water[mouse.col].speed = 20;
+    lines[3].segments[mouse.segment].speed = -20;
 }, false);
