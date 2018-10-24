@@ -1,11 +1,12 @@
+
 var canvas = document.getElementById('canvas'),
-    mx, my,
     w, h,
     ctx = canvas.getContext('2d'),
     mouse,
     drops = [],
     shower = false,
     options,
+    lines,
     linePosition = 550;
 
 
@@ -14,6 +15,7 @@ options = {
     "line_color": "#000000",
     "line_active_color": "#0000FF",
     "bg_color": "#FFFFFF",
+    "grid_width": 1,
     "resolution": 100,
     "tension": 0.22,
     "dampen": 0.2,
@@ -30,7 +32,9 @@ gui.remember(options);
 
 folder_colors.addColor(options, 'line_color');
 folder_colors.addColor(options, 'bg_color');
-var controller_resolution = folder_wave.add(options, 'resolution', 5, 300);
+var controller_resolution = folder_wave.add(options, 'columns', 1, 100);
+var controller_columns = folder_wave.add(options, 'resolution', 5, 300);
+var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
 folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
 folder_wave.add(options, 'k', 0.0025, 0.110);
@@ -38,6 +42,8 @@ folder_wave.add(options, 'mouse_influence', .5, 4);
 folder_wave.add(options, 'click_strength', 1000, 5000);
 
 controller_resolution.onChange(createGrid);
+controller_columns.onChange(createGrid);
+controller_grid_width.onChange(createGrid);
 
 createGrid();
 
@@ -105,11 +111,13 @@ function Line(posX) {
         }
 
         ctx.strokeStyle = options.line_color;
+        ctx.lineWidth = options.grid_width;
         ctx.beginPath();
         ctx.moveTo(this.segments[0].height, 0);
 
         for (var i = 0; i < this.segments.length; i++) {
-            ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.resolution));
+            ctx.bezierCurveTo(this.segments[i].height, (i + 1) * (h / options.resolution));
+            // ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.resolution));
         }
         ctx.stroke();
     }
@@ -166,6 +174,65 @@ document.addEventListener('mousemove', function (e) {
     mouse.previousy = mouse.y;
     mouse.previouscolumn = mouse.column;
 }, false);
+
+
+// ['mousemove', 'touchmove'].forEach(function(i) {
+//     window.addEventListener(i,function (e) {
+//         bounds = canvas.getBoundingClientRect();
+    
+//         mouse.x = e.clientX - bounds.left;
+//         mouse.y = e.clientY - bounds.top;
+//         mouse.speedx = mouse.x - mouse.previousx;
+//         mouse.speedy = Math.abs(mouse.previousy - mouse.y);
+//         mouse.segment = Math.floor((options.resolution / h) * mouse.y);
+//         mouse.column = Math.floor(mouse.x / w * options.columns);
+    
+    
+//         if (mouse.column < mouse.previouscolumn) {
+//             lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+//         }
+    
+//         if (mouse.column > mouse.previouscolumn) {
+//             lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+//         }
+    
+//         if (mouse.x == Math.floor(lines[3].segments[5].height)) {
+//             lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
+//         }
+    
+//         mouse.previousx = mouse.x;
+//         mouse.previousy = mouse.y;
+//         mouse.previouscolumn = mouse.column;
+//     }, false);
+// });
+
+// document.addEventListener('touchmove', function (e) {
+//     bounds = canvas.getBoundingClientRect();
+
+//     mouse.x = e.clientX - bounds.left;
+//     mouse.y = e.clientY - bounds.top;
+//     mouse.speedx = mouse.x - mouse.previousx;
+//     mouse.speedy = Math.abs(mouse.previousy - mouse.y);
+//     mouse.segment = Math.floor((options.resolution / h) * mouse.y);
+//     mouse.column = Math.floor(mouse.x / w * options.columns);
+
+
+//     if (mouse.column < mouse.previouscolumn) {
+//         lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+//     }
+
+//     if (mouse.column > mouse.previouscolumn) {
+//         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+//     }
+
+//     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
+//         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
+//     }
+
+//     mouse.previousx = mouse.x;
+//     mouse.previousy = mouse.y;
+//     mouse.previouscolumn = mouse.column;
+// }, false);
 
 canvas.addEventListener('click', function () {
     for (var i = 0; i < lines.length; i++) {

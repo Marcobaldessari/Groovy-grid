@@ -1,9 +1,10 @@
-var canvas = document.getElementById("canvas"), mx, my, w, h, ctx = canvas.getContext("2d"), mouse, drops = [], shower = false, options, linePosition = 550;
+var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, drops = [], shower = false, options, lines, linePosition = 550;
 
 options = {
     line_color: "#000000",
     line_active_color: "#0000FF",
     bg_color: "#FFFFFF",
+    grid_width: 1,
     resolution: 100,
     tension: .22,
     dampen: .2,
@@ -28,7 +29,11 @@ folder_colors.addColor(options, "line_color");
 
 folder_colors.addColor(options, "bg_color");
 
-var controller_resolution = folder_wave.add(options, "resolution", 5, 300);
+var controller_resolution = folder_wave.add(options, "columns", 1, 100);
+
+var controller_columns = folder_wave.add(options, "resolution", 5, 300);
+
+var controller_grid_width = folder_wave.add(options, "grid_width", 1, 200);
 
 folder_wave.add(options, "tension", .01, 1);
 
@@ -41,6 +46,10 @@ folder_wave.add(options, "mouse_influence", .5, 4);
 folder_wave.add(options, "click_strength", 1e3, 5e3);
 
 controller_resolution.onChange(createGrid);
+
+controller_columns.onChange(createGrid);
+
+controller_grid_width.onChange(createGrid);
 
 createGrid();
 
@@ -101,10 +110,11 @@ function Line(e) {
             }
         }
         ctx.strokeStyle = options.line_color;
+        ctx.lineWidth = options.grid_width;
         ctx.beginPath();
         ctx.moveTo(this.segments[0].height, 0);
         for (var e = 0; e < this.segments.length; e++) {
-            ctx.lineTo(this.segments[e].height, (e + 1) * (h / options.resolution));
+            ctx.bezierCurveTo(this.segments[e].height, (e + 1) * (h / options.resolution));
         }
         ctx.stroke();
     };
