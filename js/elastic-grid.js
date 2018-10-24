@@ -1,7 +1,6 @@
 var canvas = document.getElementById('canvas'),
     mx, my,
-    w = window.innerWidth,
-    h = window.innerHeight,
+    w, h,
     ctx = canvas.getContext('2d'),
     mouse,
     drops = [],
@@ -9,20 +8,19 @@ var canvas = document.getElementById('canvas'),
     options,
     linePosition = 550;
 
-canvas.width = w;
-canvas.height = h;
+
 
 options = {
     "line_color": "#000000",
-    // "line_color": "#D8D8D8",
+    "line_active_color": "#0000FF",
     "bg_color": "#FFFFFF",
-    "res": 100,
+    "resolution": 100,
     "tension": 0.22,
     "dampen": 0.2,
     "k": 0.075,
     "columns": 8,
     "click_strength": 3000,
-    "m_influence": 1
+    "mouse_influence": 1
 }
 
 var gui = new dat.GUI({ load: options, preset: 'Preset1' });
@@ -32,20 +30,30 @@ gui.remember(options);
 
 folder_colors.addColor(options, 'line_color');
 folder_colors.addColor(options, 'bg_color');
-folder_wave.add(options, 'res', 5, 300);
+var controller_resolution = folder_wave.add(options, 'resolution', 5, 300);
 folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
 folder_wave.add(options, 'k', 0.0025, 0.110);
+folder_wave.add(options, 'mouse_influence', .5, 4);
 folder_wave.add(options, 'click_strength', 1000, 5000);
 
+controller_resolution.onChange(createGrid);
 
-lines = [];
-for (var i = 0; i < options.columns - 1; i++) {
-    lines[i] = new Line((i + 1) * (w / options.columns));
-}
+createGrid();
 
 animate();
 
+
+function createGrid() {
+    w = window.innerWidth;
+    h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+    lines = [];
+    for (var i = 0; i < options.columns - 1; i++) {
+        lines[i] = new Line((i + 1) * (w / options.columns));
+    }
+}
 
 function animate() {
     ctx.clearRect(0, 0, w, h);
@@ -61,7 +69,7 @@ function animate() {
 function Line(posX) {
     this.posX = posX;
     this.segments = [];
-    for (var i = 0; i < options.res; i++) {
+    for (var i = 0; i < options.resolution; i++) {
         this.segments[i] = new spring(posX);
     }
 
@@ -101,7 +109,7 @@ function Line(posX) {
         ctx.moveTo(this.segments[0].height, 0);
 
         for (var i = 0; i < this.segments.length; i++) {
-            ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.res));
+            ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.resolution));
         }
         ctx.stroke();
     }
@@ -119,6 +127,17 @@ function spring(posX) {
 }
 
 
+var mouse = function () {
+    this.x;
+    this.y;
+    this.segment;
+    this.previousx;
+    this.previousy;
+    this.speedx;
+    this.speedy;
+    this.column;
+    this.previouscolumn
+}
 
 document.addEventListener('mousemove', function (e) {
     bounds = canvas.getBoundingClientRect();
@@ -127,16 +146,16 @@ document.addEventListener('mousemove', function (e) {
     mouse.y = e.clientY - bounds.top;
     mouse.speedx = mouse.x - mouse.previousx;
     mouse.speedy = Math.abs(mouse.previousy - mouse.y);
-    mouse.segment = Math.floor((options.res / h) * mouse.y);
+    mouse.segment = Math.floor((options.resolution / h) * mouse.y);
     mouse.column = Math.floor(mouse.x / w * options.columns);
-    
+
 
     if (mouse.column < mouse.previouscolumn) {
-        lines[mouse.column].segments[mouse.segment].speed = mouse.speedx;    
+        lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
     }
 
     if (mouse.column > mouse.previouscolumn) {
-        lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx;    
+        lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
     }
 
     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
@@ -155,14 +174,4 @@ canvas.addEventListener('click', function () {
 }, false);
 
 
-var mouse = function () {
-    this.x;
-    this.y;
-    this.segment;
-    this.previousx;
-    this.previousy;
-    this.speedx;
-    this.speedy;
-    this.column;
-    this.previouscolumn
-}
+window.addEventListener('resize', createGrid, false);
