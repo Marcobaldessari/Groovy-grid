@@ -17,10 +17,12 @@ options = {
     // "line_color": "#D8D8D8",
     "bg_color": "#FFFFFF",
     "res": 100,
-    "tension": 0.10,
-    "dampen": 0.02,
-    "k": 0.025,
-    "columns": 8
+    "tension": 0.22,
+    "dampen": 0.2,
+    "k": 0.075,
+    "columns": 8,
+    "click_strength": 3000,
+    "m_influence": 1
 }
 
 var gui = new dat.GUI({ load: options, preset: 'Preset1' });
@@ -34,6 +36,7 @@ folder_wave.add(options, 'res', 5, 300);
 folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
 folder_wave.add(options, 'k', 0.0025, 0.110);
+folder_wave.add(options, 'click_strength', 1000, 5000);
 
 
 lines = [];
@@ -54,7 +57,7 @@ function animate() {
     }
     window.requestAnimationFrame(animate);
 }
-    
+
 function Line(posX) {
     this.posX = posX;
     this.segments = [];
@@ -88,7 +91,7 @@ function Line(posX) {
                     this.segments[i - 1].height += ldelta[i];
                 }
                 if (i < segments.length - 1) {
-                    this. segments[i + 1].height += rdelta[i];
+                    this.segments[i + 1].height += rdelta[i];
                 }
             }
         }
@@ -118,26 +121,48 @@ function spring(posX) {
 
 
 document.addEventListener('mousemove', function (e) {
-        bounds = canvas.getBoundingClientRect();
-        mouse.x = e.clientX - bounds.left;
-        mouse.y = e.clientY - bounds.top;
-        mouse.segment = Math.floor((options.res / h) * mouse.y);
-        console.log(mouse.segment);
+    bounds = canvas.getBoundingClientRect();
+
+    mouse.x = e.clientX - bounds.left;
+    mouse.y = e.clientY - bounds.top;
+    mouse.speedx = mouse.x - mouse.previousx;
+    mouse.speedy = Math.abs(mouse.previousy - mouse.y);
+    mouse.segment = Math.floor((options.res / h) * mouse.y);
+    mouse.column = Math.floor(mouse.x / w * options.columns);
+    
+
+    if (mouse.column < mouse.previouscolumn) {
+        lines[mouse.column].segments[mouse.segment].speed = mouse.speedx;    
+    }
+
+    if (mouse.column > mouse.previouscolumn) {
+        lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx;    
+    }
 
     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
     }
+
+    mouse.previousx = mouse.x;
+    mouse.previousy = mouse.y;
+    mouse.previouscolumn = mouse.column;
 }, false);
 
 canvas.addEventListener('click', function () {
     for (var i = 0; i < lines.length; i++) {
-        lines[i].segments[mouse.segment].speed = lines[i].segments[mouse.segment].speed + 3000 / (lines[i].posX - mouse.x);
+        lines[i].segments[mouse.segment].speed = lines[i].segments[mouse.segment].speed + options.click_strength / (lines[i].posX - mouse.x);
     }
 }, false);
 
 
-var mouse = function() {
+var mouse = function () {
     this.x;
     this.y;
     this.segment;
+    this.previousx;
+    this.previousy;
+    this.speedx;
+    this.speedy;
+    this.column;
+    this.previouscolumn
 }

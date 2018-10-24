@@ -8,11 +8,12 @@ options = {
     line_color: "#000000",
     bg_color: "#FFFFFF",
     res: 100,
-    tension: .1,
-    dampen: .02,
-    k: .025,
+    tension: .22,
+    dampen: .2,
+    k: .075,
     columns: 8,
-    strength: 3e3
+    click_strength: 3e3,
+    m_influence: 1
 };
 
 var gui = new dat.GUI({
@@ -38,7 +39,7 @@ folder_wave.add(options, "dampen", .002, .2);
 
 folder_wave.add(options, "k", .0025, .11);
 
-folder_wave.add(options, "strength", 1e3, 5e3);
+folder_wave.add(options, "click_strength", 1e3, 5e3);
 
 lines = [];
 
@@ -70,16 +71,16 @@ function Line(e) {
             this.segments[e].update();
         }
         var s = new Array(this.segments.length);
-        var t = new Array(this.segments.length);
-        for (var n = 0; n < 8; n++) {
+        var o = new Array(this.segments.length);
+        for (var t = 0; t < 8; t++) {
             for (e = 0; e < this.segments.length; e++) {
                 if (e > 0) {
                     s[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
                     this.segments[e - 1].speed += s[e];
                 }
                 if (e < this.segments.length - 1) {
-                    t[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
-                    this.segments[e + 1].speed += t[e];
+                    o[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
+                    this.segments[e + 1].speed += o[e];
                 }
             }
             for (e = 0; e < this.segments[e].length; e++) {
@@ -87,7 +88,7 @@ function Line(e) {
                     this.segments[e - 1].height += s[e];
                 }
                 if (e < segments.length - 1) {
-                    this.segments[e + 1].height += t[e];
+                    this.segments[e + 1].height += o[e];
                 }
             }
         }
@@ -116,16 +117,27 @@ document.addEventListener("mousemove", function(e) {
     bounds = canvas.getBoundingClientRect();
     mouse.x = e.clientX - bounds.left;
     mouse.y = e.clientY - bounds.top;
+    mouse.speedx = mouse.x - mouse.previousx;
+    mouse.speedy = Math.abs(mouse.previousy - mouse.y);
     mouse.segment = Math.floor(options.res / h * mouse.y);
-    console.log(mouse.segment);
+    mouse.column = Math.floor(mouse.x / w * options.columns);
+    if (mouse.column < mouse.previouscolumn) {
+        lines[mouse.column].segments[mouse.segment].speed = mouse.speedx;
+    }
+    if (mouse.column > mouse.previouscolumn) {
+        lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx;
+    }
     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
     }
+    mouse.previousx = mouse.x;
+    mouse.previousy = mouse.y;
+    mouse.previouscolumn = mouse.column;
 }, false);
 
 canvas.addEventListener("click", function() {
     for (var e = 0; e < lines.length; e++) {
-        lines[e].segments[mouse.segment].speed = lines[e].segments[mouse.segment].speed + options.strength / (lines[e].posX - mouse.x);
+        lines[e].segments[mouse.segment].speed = lines[e].segments[mouse.segment].speed + options.click_strength / (lines[e].posX - mouse.x);
     }
 }, false);
 
@@ -133,4 +145,10 @@ var mouse = function() {
     this.x;
     this.y;
     this.segment;
+    this.previousx;
+    this.previousy;
+    this.speedx;
+    this.speedy;
+    this.column;
+    this.previouscolumn;
 };
