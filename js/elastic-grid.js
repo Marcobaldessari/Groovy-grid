@@ -20,11 +20,12 @@ options = {
     "dampen": 0.2,
     "k": 0.075,
     "columns": 8,
-    "click_strength": 3000,
+    "click_random": false,
+    "click_strength": 1000,
     "mouse_influence": 1
 }
 
-var gui = new dat.GUI({ load: getPresetJSON(), preset: 'Preset1' });
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'light, low-res' });
 
 var folder_colors = gui.addFolder('Colors');
 var folder_wave = gui.addFolder('Wave');
@@ -40,16 +41,15 @@ folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
 folder_wave.add(options, 'k', 0.0025, 0.110);
 folder_wave.add(options, 'mouse_influence', .5, 4);
-folder_wave.add(options, 'click_strength', 1000, 5000);
-
+folder_wave.add(options, 'click_random');
+folder_wave.add(options, 'click_strength', 100, 5000);
 controller_resolution.onChange(createGrid);
 controller_columns.onChange(createGrid);
 controller_grid_width.onChange(createGrid);
+// gui.close();
 
 createGrid();
-
 animate();
-
 
 function createGrid() {
     w = window.innerWidth;
@@ -61,6 +61,7 @@ function createGrid() {
         lines[i] = new Line((i + 1) * (w / options.columns));
     }
 }
+window.addEventListener('resize', createGrid, false);
 
 function animate() {
     ctx.clearRect(0, 0, w, h);
@@ -171,15 +172,13 @@ document.addEventListener('mousemove', function (e) {
         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
         var animationColor = new TimelineLite();
         animationColor.to(lines[mouse.column - 1], .001, { color: options.line_active_color })
-            .to(lines[mouse.column - 1], .8, {  color: options.line_default_color });
+            .to(lines[mouse.column - 1], .8, { color: options.line_default_color });
     }
 
     mouse.previousx = mouse.x;
     mouse.previousy = mouse.y;
     mouse.previouscolumn = mouse.column;
 }, false);
-
-
 
 
 // ['mousemove', 'touchmove'].forEach(function(i) {
@@ -212,42 +211,20 @@ document.addEventListener('mousemove', function (e) {
 //     }, false);
 // });
 
-// document.addEventListener('touchmove', function (e) {
-//     bounds = canvas.getBoundingClientRect();
-
-//     mouse.x = e.clientX - bounds.left;
-//     mouse.y = e.clientY - bounds.top;
-//     mouse.speedx = mouse.x - mouse.previousx;
-//     mouse.speedy = Math.abs(mouse.previousy - mouse.y);
-//     mouse.segment = Math.floor((options.resolution / h) * mouse.y);
-//     mouse.column = Math.floor(mouse.x / w * options.columns);
-
-
-//     if (mouse.column < mouse.previouscolumn) {
-//         lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-//     }
-
-//     if (mouse.column > mouse.previouscolumn) {
-//         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-//     }
-
-//     if (mouse.x == Math.floor(lines[3].segments[5].height)) {
-//         lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
-//     }
-
-//     mouse.previousx = mouse.x;
-//     mouse.previousy = mouse.y;
-//     mouse.previouscolumn = mouse.column;
-// }, false);
-
-canvas.addEventListener('click', function () {
+document.addEventListener('click', function () {
     for (var i = 0; i < lines.length; i++) {
-        lines[i].segments[mouse.segment].speed = lines[i].segments[mouse.segment].speed + options.click_strength / (lines[i].posX - mouse.x);
+        if (options.click_random) {
+            lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+        } else {
+            lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
+
+        }
+        var animationColor = new TimelineLite();
+        animationColor.to(lines[i], .001, { color: options.line_active_color })
+            .to(lines[i], .8, { color: options.line_default_color });
     }
 }, false);
 
-
-window.addEventListener('resize', createGrid, false);
 
 
 function getPresetJSON() {
@@ -282,8 +259,8 @@ function getPresetJSON() {
             },
             "light, low-res": {
                 "0": {
-                    "line_default_color": "#ebebeb",
-                    "line_active_color": "#787878",
+                    "line_default_color": "#d9d9d9",
+                    "line_active_color": "#000000",
                     "bg_color": "#FFFFFF",
                     "columns": 7.994657935550578,
                     "resolution": 22.589178011373427,
@@ -292,7 +269,55 @@ function getPresetJSON() {
                     "dampen": 0.2,
                     "k": 0.021951145958986732,
                     "mouse_influence": 1,
-                    "click_strength": 3000
+                    "click_random": true,
+                    "click_strength": 878.528347406514
+                }
+            },
+            "marco-baldessari": {
+                "0": {
+                    "line_default_color": "#f2f2f2",
+                    "line_active_color": "#787878",
+                    "bg_color": "#FFFFFF",
+                    "columns": 7.994657935550578,
+                    "resolution": 22.589178011373427,
+                    "grid_width": 1,
+                    "tension": 0.1672945028433569,
+                    "dampen": 0.05747957952783044,
+                    "k": 0.021951145958986732,
+                    "mouse_influence": 1,
+                    "click_strength": 1000
+                }
+            },
+            "dense grid": {
+                "0": {
+                    "line_default_color": "#050505",
+                    "line_active_color": "#787878",
+                    "bg_color": "#FFFFFF",
+                    "columns": 100,
+                    "resolution": 152.72876098569705,
+                    "grid_width": 1,
+                    "tension": 0.6258711011545752,
+                    "dampen": 0.10552093744614854,
+                    "k": 0.0741172669308978,
+                    "mouse_influence": 1.8667068757539202,
+                    "click_random": false,
+                    "click_strength": 100
+                }
+            },
+            "acid": {
+                "0": {
+                    "line_default_color": "#028e54",
+                    "line_active_color": "#78ff00",
+                    "bg_color": "#000000",
+                    "columns": 2,
+                    "resolution": 103.9264173703257,
+                    "grid_width": 1,
+                    "tension": 0.6258711011545752,
+                    "dampen": 0.10552093744614854,
+                    "k": 0.0741172669308978,
+                    "mouse_influence": 3.6423401688781665,
+                    "click_random": false,
+                    "click_strength": 5000
                 }
             }
         },

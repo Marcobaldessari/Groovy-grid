@@ -10,13 +10,14 @@ options = {
     dampen: .2,
     k: .075,
     columns: 8,
-    click_strength: 3e3,
+    click_random: false,
+    click_strength: 1e3,
     mouse_influence: 1
 };
 
 var gui = new dat.GUI({
     load: getPresetJSON(),
-    preset: "Preset1"
+    preset: "light, low-res"
 });
 
 var folder_colors = gui.addFolder("Colors");
@@ -45,7 +46,9 @@ folder_wave.add(options, "k", .0025, .11);
 
 folder_wave.add(options, "mouse_influence", .5, 4);
 
-folder_wave.add(options, "click_strength", 1e3, 5e3);
+folder_wave.add(options, "click_random");
+
+folder_wave.add(options, "click_strength", 100, 5e3);
 
 controller_resolution.onChange(createGrid);
 
@@ -67,6 +70,8 @@ function createGrid() {
         lines[e] = new Line((e + 1) * (w / options.columns));
     }
 }
+
+window.addEventListener("resize", createGrid, false);
 
 function animate() {
     ctx.clearRect(0, 0, w, h);
@@ -177,13 +182,21 @@ document.addEventListener("mousemove", function(e) {
     mouse.previouscolumn = mouse.column;
 }, false);
 
-canvas.addEventListener("click", function() {
+document.addEventListener("click", function() {
     for (var e = 0; e < lines.length; e++) {
-        lines[e].segments[mouse.segment].speed = lines[e].segments[mouse.segment].speed + options.click_strength / (lines[e].posX - mouse.x);
+        if (options.click_random) {
+            lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+        } else {
+            lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
+        }
+        var o = new TimelineLite();
+        o.to(lines[e], .001, {
+            color: options.line_active_color
+        }).to(lines[e], .8, {
+            color: options.line_default_color
+        });
     }
 }, false);
-
-window.addEventListener("resize", createGrid, false);
 
 function getPresetJSON() {
     return {
@@ -217,8 +230,8 @@ function getPresetJSON() {
             },
             "light, low-res": {
                 "0": {
-                    line_default_color: "#ebebeb",
-                    line_active_color: "#787878",
+                    line_default_color: "#d9d9d9",
+                    line_active_color: "#000000",
                     bg_color: "#FFFFFF",
                     columns: 7.994657935550578,
                     resolution: 22.589178011373427,
@@ -227,7 +240,55 @@ function getPresetJSON() {
                     dampen: .2,
                     k: .021951145958986732,
                     mouse_influence: 1,
-                    click_strength: 3e3
+                    click_random: true,
+                    click_strength: 878.528347406514
+                }
+            },
+            "marco-baldessari": {
+                "0": {
+                    line_default_color: "#f2f2f2",
+                    line_active_color: "#787878",
+                    bg_color: "#FFFFFF",
+                    columns: 7.994657935550578,
+                    resolution: 22.589178011373427,
+                    grid_width: 1,
+                    tension: .1672945028433569,
+                    dampen: .05747957952783044,
+                    k: .021951145958986732,
+                    mouse_influence: 1,
+                    click_strength: 1e3
+                }
+            },
+            "dense grid": {
+                "0": {
+                    line_default_color: "#050505",
+                    line_active_color: "#787878",
+                    bg_color: "#FFFFFF",
+                    columns: 100,
+                    resolution: 152.72876098569705,
+                    grid_width: 1,
+                    tension: .6258711011545752,
+                    dampen: .10552093744614854,
+                    k: .0741172669308978,
+                    mouse_influence: 1.8667068757539202,
+                    click_random: false,
+                    click_strength: 100
+                }
+            },
+            acid: {
+                "0": {
+                    line_default_color: "#028e54",
+                    line_active_color: "#78ff00",
+                    bg_color: "#000000",
+                    columns: 2,
+                    resolution: 103.9264173703257,
+                    grid_width: 1,
+                    tension: .6258711011545752,
+                    dampen: .10552093744614854,
+                    k: .0741172669308978,
+                    mouse_influence: 3.6423401688781665,
+                    click_random: false,
+                    click_strength: 5e3
                 }
             }
         },
