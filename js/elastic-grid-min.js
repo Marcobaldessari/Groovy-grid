@@ -1,7 +1,7 @@
-var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, drops = [], shower = false, options, lines, linePosition = 550;
+var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, shower = false, options, lines, linePosition = 550;
 
 options = {
-    line_color: "#000000",
+    line_default_color: "#000000",
     line_active_color: "#0000FF",
     bg_color: "#FFFFFF",
     grid_width: 1,
@@ -15,7 +15,7 @@ options = {
 };
 
 var gui = new dat.GUI({
-    load: options,
+    load: getPresetJSON(),
     preset: "Preset1"
 });
 
@@ -25,7 +25,9 @@ var folder_wave = gui.addFolder("Wave");
 
 gui.remember(options);
 
-folder_colors.addColor(options, "line_color");
+folder_colors.addColor(options, "line_default_color");
+
+folder_colors.addColor(options, "line_active_color");
 
 folder_colors.addColor(options, "bg_color");
 
@@ -78,43 +80,44 @@ function animate() {
 }
 
 function Line(e) {
+    this.color = options.line_default_color;
     this.posX = e;
     this.segments = [];
-    for (var s = 0; s < options.resolution; s++) {
-        this.segments[s] = new spring(e);
+    for (var o = 0; o < options.resolution; o++) {
+        this.segments[o] = new spring(e);
     }
     this.update = function() {
         for (var e = 0; e < this.segments.length; e++) {
             this.segments[e].update();
         }
-        var s = new Array(this.segments.length);
         var o = new Array(this.segments.length);
+        var s = new Array(this.segments.length);
         for (var t = 0; t < 8; t++) {
             for (e = 0; e < this.segments.length; e++) {
                 if (e > 0) {
-                    s[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
-                    this.segments[e - 1].speed += s[e];
+                    o[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
+                    this.segments[e - 1].speed += o[e];
                 }
                 if (e < this.segments.length - 1) {
-                    o[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
-                    this.segments[e + 1].speed += o[e];
+                    s[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
+                    this.segments[e + 1].speed += s[e];
                 }
             }
             for (e = 0; e < this.segments[e].length; e++) {
                 if (e > 0) {
-                    this.segments[e - 1].height += s[e];
+                    this.segments[e - 1].height += o[e];
                 }
                 if (e < segments.length - 1) {
-                    this.segments[e + 1].height += o[e];
+                    this.segments[e + 1].height += s[e];
                 }
             }
         }
-        ctx.strokeStyle = options.line_color;
+        ctx.strokeStyle = this.color;
         ctx.lineWidth = options.grid_width;
         ctx.beginPath();
         ctx.moveTo(this.segments[0].height, 0);
         for (var e = 0; e < this.segments.length; e++) {
-            ctx.bezierCurveTo(this.segments[e].height, (e + 1) * (h / options.resolution));
+            ctx.lineTo(this.segments[e].height, (e + 1) * (h / options.resolution));
         }
         ctx.stroke();
     };
@@ -153,12 +156,21 @@ document.addEventListener("mousemove", function(e) {
     mouse.column = Math.floor(mouse.x / w * options.columns);
     if (mouse.column < mouse.previouscolumn) {
         lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+        var o = new TimelineLite();
+        o.to(lines[mouse.column], .001, {
+            color: options.line_active_color
+        }).to(lines[mouse.column], .8, {
+            color: options.line_default_color
+        });
     }
     if (mouse.column > mouse.previouscolumn) {
         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-    }
-    if (mouse.x == Math.floor(lines[3].segments[5].height)) {
-        lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
+        var o = new TimelineLite();
+        o.to(lines[mouse.column - 1], .001, {
+            color: options.line_active_color
+        }).to(lines[mouse.column - 1], .8, {
+            color: options.line_default_color
+        });
     }
     mouse.previousx = mouse.x;
     mouse.previousy = mouse.y;
@@ -172,3 +184,65 @@ canvas.addEventListener("click", function() {
 }, false);
 
 window.addEventListener("resize", createGrid, false);
+
+function getPresetJSON() {
+    return {
+        line_default_color: "#ebebeb",
+        line_active_color: "#787878",
+        bg_color: "#FFFFFF",
+        grid_width: 1,
+        resolution: 22.589178011373427,
+        tension: .5821971394106497,
+        dampen: .2,
+        k: .021951145958986732,
+        columns: 7.994657935550578,
+        click_strength: 3e3,
+        mouse_influence: 1,
+        preset: "light, low-res",
+        remembered: {
+            Preset1: {
+                "0": {
+                    line_default_color: "#ebebeb",
+                    line_active_color: "#787878",
+                    bg_color: "#FFFFFF",
+                    columns: 7.994657935550578,
+                    resolution: 22.589178011373427,
+                    grid_width: 1,
+                    tension: .5821971394106497,
+                    dampen: .2,
+                    k: .021951145958986732,
+                    mouse_influence: 1,
+                    click_strength: 3e3
+                }
+            },
+            "light, low-res": {
+                "0": {
+                    line_default_color: "#ebebeb",
+                    line_active_color: "#787878",
+                    bg_color: "#FFFFFF",
+                    columns: 7.994657935550578,
+                    resolution: 22.589178011373427,
+                    grid_width: 1,
+                    tension: .5821971394106497,
+                    dampen: .2,
+                    k: .021951145958986732,
+                    mouse_influence: 1,
+                    click_strength: 3e3
+                }
+            }
+        },
+        closed: false,
+        folders: {
+            Colors: {
+                preset: "Default",
+                closed: false,
+                folders: {}
+            },
+            Wave: {
+                preset: "Default",
+                closed: false,
+                folders: {}
+            }
+        }
+    };
+}

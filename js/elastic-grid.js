@@ -3,7 +3,6 @@ var canvas = document.getElementById('canvas'),
     w, h,
     ctx = canvas.getContext('2d'),
     mouse,
-    drops = [],
     shower = false,
     options,
     lines,
@@ -12,7 +11,7 @@ var canvas = document.getElementById('canvas'),
 
 
 options = {
-    "line_color": "#000000",
+    "line_default_color": "#000000",
     "line_active_color": "#0000FF",
     "bg_color": "#FFFFFF",
     "grid_width": 1,
@@ -25,12 +24,14 @@ options = {
     "mouse_influence": 1
 }
 
-var gui = new dat.GUI({ load: options, preset: 'Preset1' });
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'Preset1' });
+
 var folder_colors = gui.addFolder('Colors');
 var folder_wave = gui.addFolder('Wave');
 gui.remember(options);
 
-folder_colors.addColor(options, 'line_color');
+folder_colors.addColor(options, 'line_default_color');
+folder_colors.addColor(options, 'line_active_color');
 folder_colors.addColor(options, 'bg_color');
 var controller_resolution = folder_wave.add(options, 'columns', 1, 100);
 var controller_columns = folder_wave.add(options, 'resolution', 5, 300);
@@ -73,6 +74,7 @@ function animate() {
 }
 
 function Line(posX) {
+    this.color = options.line_default_color;
     this.posX = posX;
     this.segments = [];
     for (var i = 0; i < options.resolution; i++) {
@@ -110,14 +112,14 @@ function Line(posX) {
             }
         }
 
-        ctx.strokeStyle = options.line_color;
+        ctx.strokeStyle = this.color;
         ctx.lineWidth = options.grid_width;
         ctx.beginPath();
         ctx.moveTo(this.segments[0].height, 0);
 
         for (var i = 0; i < this.segments.length; i++) {
-            ctx.bezierCurveTo(this.segments[i].height, (i + 1) * (h / options.resolution));
-            // ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.resolution));
+            // ctx.bezierCurveTo(this.segments[i].height, (i + 1) * (h / options.resolution));
+            ctx.lineTo(this.segments[i].height, (i + 1) * (h / options.resolution));
         }
         ctx.stroke();
     }
@@ -160,14 +162,16 @@ document.addEventListener('mousemove', function (e) {
 
     if (mouse.column < mouse.previouscolumn) {
         lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
+        var animationColor = new TimelineLite();
+        animationColor.to(lines[mouse.column], .001, { color: options.line_active_color })
+            .to(lines[mouse.column], .8, { color: options.line_default_color });
     }
 
     if (mouse.column > mouse.previouscolumn) {
         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-    }
-
-    if (mouse.x == Math.floor(lines[3].segments[5].height)) {
-        lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
+        var animationColor = new TimelineLite();
+        animationColor.to(lines[mouse.column - 1], .001, { color: options.line_active_color })
+            .to(lines[mouse.column - 1], .8, {  color: options.line_default_color });
     }
 
     mouse.previousx = mouse.x;
@@ -176,30 +180,32 @@ document.addEventListener('mousemove', function (e) {
 }, false);
 
 
+
+
 // ['mousemove', 'touchmove'].forEach(function(i) {
 //     window.addEventListener(i,function (e) {
 //         bounds = canvas.getBoundingClientRect();
-    
+
 //         mouse.x = e.clientX - bounds.left;
 //         mouse.y = e.clientY - bounds.top;
 //         mouse.speedx = mouse.x - mouse.previousx;
 //         mouse.speedy = Math.abs(mouse.previousy - mouse.y);
 //         mouse.segment = Math.floor((options.resolution / h) * mouse.y);
 //         mouse.column = Math.floor(mouse.x / w * options.columns);
-    
-    
+
+
 //         if (mouse.column < mouse.previouscolumn) {
 //             lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
 //         }
-    
+
 //         if (mouse.column > mouse.previouscolumn) {
 //             lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
 //         }
-    
+
 //         if (mouse.x == Math.floor(lines[3].segments[5].height)) {
 //             lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
 //         }
-    
+
 //         mouse.previousx = mouse.x;
 //         mouse.previousy = mouse.y;
 //         mouse.previouscolumn = mouse.column;
@@ -242,3 +248,66 @@ canvas.addEventListener('click', function () {
 
 
 window.addEventListener('resize', createGrid, false);
+
+
+function getPresetJSON() {
+    return {
+        "line_default_color": "#ebebeb",
+        "line_active_color": "#787878",
+        "bg_color": "#FFFFFF",
+        "grid_width": 1,
+        "resolution": 22.589178011373427,
+        "tension": 0.5821971394106497,
+        "dampen": 0.2,
+        "k": 0.021951145958986732,
+        "columns": 7.994657935550578,
+        "click_strength": 3000,
+        "mouse_influence": 1,
+        "preset": "light, low-res",
+        "remembered": {
+            "Preset1": {
+                "0": {
+                    "line_default_color": "#ebebeb",
+                    "line_active_color": "#787878",
+                    "bg_color": "#FFFFFF",
+                    "columns": 7.994657935550578,
+                    "resolution": 22.589178011373427,
+                    "grid_width": 1,
+                    "tension": 0.5821971394106497,
+                    "dampen": 0.2,
+                    "k": 0.021951145958986732,
+                    "mouse_influence": 1,
+                    "click_strength": 3000
+                }
+            },
+            "light, low-res": {
+                "0": {
+                    "line_default_color": "#ebebeb",
+                    "line_active_color": "#787878",
+                    "bg_color": "#FFFFFF",
+                    "columns": 7.994657935550578,
+                    "resolution": 22.589178011373427,
+                    "grid_width": 1,
+                    "tension": 0.5821971394106497,
+                    "dampen": 0.2,
+                    "k": 0.021951145958986732,
+                    "mouse_influence": 1,
+                    "click_strength": 3000
+                }
+            }
+        },
+        "closed": false,
+        "folders": {
+            "Colors": {
+                "preset": "Default",
+                "closed": false,
+                "folders": {}
+            },
+            "Wave": {
+                "preset": "Default",
+                "closed": false,
+                "folders": {}
+            }
+        }
+    }
+}
