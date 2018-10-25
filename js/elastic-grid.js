@@ -20,6 +20,7 @@ options = {
     "dampen": 0.2,
     "k": 0.075,
     "columns": 8,
+    "click_enabled": true,
     "click_random": false,
     "click_strength": 1000,
     "mouse_influence": 1
@@ -41,6 +42,7 @@ folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
 folder_wave.add(options, 'k', 0.0025, 0.110);
 folder_wave.add(options, 'mouse_influence', .5, 4);
+folder_wave.add(options, 'click_enabled');
 folder_wave.add(options, 'click_random');
 folder_wave.add(options, 'click_strength', 100, 5000);
 controller_resolution.onChange(createGrid);
@@ -150,11 +152,17 @@ var mouse = function () {
     this.previouscolumn
 }
 
-document.addEventListener('mousemove', function (e) {
+function cursorMove(e) {
     bounds = canvas.getBoundingClientRect();
-
-    mouse.x = e.clientX - bounds.left;
-    mouse.y = e.clientY - bounds.top;
+    if (e.targetTouches && e.targetTouches[0]) {
+        e.preventDefault();
+        pointerEvent = e.targetTouches[0];
+        mouse.x = pointerEvent.pageX;
+        mouse.y = pointerEvent.pageY;
+    } else {
+        mouse.x = e.clientX - bounds.left;
+        mouse.y = e.clientY - bounds.top;
+    }
     mouse.speedx = mouse.x - mouse.previousx;
     mouse.speedy = Math.abs(mouse.previousy - mouse.y);
     mouse.segment = Math.floor((options.resolution / h) * mouse.y);
@@ -178,50 +186,24 @@ document.addEventListener('mousemove', function (e) {
     mouse.previousx = mouse.x;
     mouse.previousy = mouse.y;
     mouse.previouscolumn = mouse.column;
-}, false);
+}
 
-
-// ['mousemove', 'touchmove'].forEach(function(i) {
-//     window.addEventListener(i,function (e) {
-//         bounds = canvas.getBoundingClientRect();
-
-//         mouse.x = e.clientX - bounds.left;
-//         mouse.y = e.clientY - bounds.top;
-//         mouse.speedx = mouse.x - mouse.previousx;
-//         mouse.speedy = Math.abs(mouse.previousy - mouse.y);
-//         mouse.segment = Math.floor((options.resolution / h) * mouse.y);
-//         mouse.column = Math.floor(mouse.x / w * options.columns);
-
-
-//         if (mouse.column < mouse.previouscolumn) {
-//             lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-//         }
-
-//         if (mouse.column > mouse.previouscolumn) {
-//             lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
-//         }
-
-//         if (mouse.x == Math.floor(lines[3].segments[5].height)) {
-//             lines[3].segments[mouse.segment].speed = lines[3].segments[mouse.segment].speed + 10;
-//         }
-
-//         mouse.previousx = mouse.x;
-//         mouse.previousy = mouse.y;
-//         mouse.previouscolumn = mouse.column;
-//     }, false);
-// });
+window.addEventListener("mousemove", cursorMove);
+window.addEventListener("touchmove", cursorMove);
 
 document.addEventListener('click', function () {
-    for (var i = 0; i < lines.length; i++) {
-        if (options.click_random) {
-            lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-        } else {
-            lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
+    if (options.click_enabled) {
+        for (var i = 0; i < lines.length; i++) {
+            if (options.click_random) {
+                lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+            } else {
+                lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
 
+            }
+            var animationColor = new TimelineLite();
+            animationColor.to(lines[i], .001, { color: options.line_active_color })
+                .to(lines[i], .8, { color: options.line_default_color });
         }
-        var animationColor = new TimelineLite();
-        animationColor.to(lines[i], .001, { color: options.line_active_color })
-            .to(lines[i], .8, { color: options.line_default_color });
     }
 }, false);
 

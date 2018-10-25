@@ -10,6 +10,7 @@ options = {
     dampen: .2,
     k: .075,
     columns: 8,
+    click_enabled: true,
     click_random: false,
     click_strength: 1e3,
     mouse_influence: 1
@@ -45,6 +46,8 @@ folder_wave.add(options, "dampen", .002, .2);
 folder_wave.add(options, "k", .0025, .11);
 
 folder_wave.add(options, "mouse_influence", .5, 4);
+
+folder_wave.add(options, "click_enabled");
 
 folder_wave.add(options, "click_random");
 
@@ -151,10 +154,17 @@ var mouse = function() {
     this.previouscolumn;
 };
 
-document.addEventListener("mousemove", function(e) {
+function cursorMove(e) {
     bounds = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - bounds.left;
-    mouse.y = e.clientY - bounds.top;
+    if (e.targetTouches && e.targetTouches[0]) {
+        e.preventDefault();
+        pointerEvent = e.targetTouches[0];
+        mouse.x = pointerEvent.pageX;
+        mouse.y = pointerEvent.pageY;
+    } else {
+        mouse.x = e.clientX - bounds.left;
+        mouse.y = e.clientY - bounds.top;
+    }
     mouse.speedx = mouse.x - mouse.previousx;
     mouse.speedy = Math.abs(mouse.previousy - mouse.y);
     mouse.segment = Math.floor(options.resolution / h * mouse.y);
@@ -180,21 +190,27 @@ document.addEventListener("mousemove", function(e) {
     mouse.previousx = mouse.x;
     mouse.previousy = mouse.y;
     mouse.previouscolumn = mouse.column;
-}, false);
+}
+
+window.addEventListener("mousemove", cursorMove);
+
+window.addEventListener("touchmove", cursorMove);
 
 document.addEventListener("click", function() {
-    for (var e = 0; e < lines.length; e++) {
-        if (options.click_random) {
-            lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-        } else {
-            lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
+    if (options.click_enabled) {
+        for (var e = 0; e < lines.length; e++) {
+            if (options.click_random) {
+                lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+            } else {
+                lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
+            }
+            var o = new TimelineLite();
+            o.to(lines[e], .001, {
+                color: options.line_active_color
+            }).to(lines[e], .8, {
+                color: options.line_default_color
+            });
         }
-        var o = new TimelineLite();
-        o.to(lines[e], .001, {
-            color: options.line_active_color
-        }).to(lines[e], .8, {
-            color: options.line_default_color
-        });
     }
 }, false);
 
