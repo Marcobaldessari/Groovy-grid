@@ -2,53 +2,49 @@
 var canvas = document.getElementById('canvas'),
     w, h,
     ctx = canvas.getContext('2d'),
-    mouse,
+    mouse, touchStop,
     shower = false,
     options,
     lines,
-    linePosition = 550;
-
-
+    start = Date.now();
 
 options = {
-    "line_default_color": "#000000",
-    "line_active_color": "#0000FF",
+    "line_default_color": "#f2f2f2",
+    "line_active_color": "#787878",
     "bg_color": "#FFFFFF",
+    "columns": 7.994657935550578,
+    "resolution": 22.589178011373427,
     "grid_width": 1,
-    "resolution": 100,
-    "tension": 0.22,
-    "dampen": 0.2,
-    "k": 0.075,
-    "columns": 8,
-    "click_enabled": true,
-    "click_random": false,
-    "click_strength": 1000,
-    "mouse_influence": 1
+    "tension": 0.1672945028433569,
+    "dampen": 0.05747957952783044,
+    "k": 0.021951145958986732,
+    "mouse_influence": 1,
+    "click": "random",
+    "click_strength": 1000
 }
 
-var gui = new dat.GUI({ load: getPresetJSON(), preset: 'light, low-res' });
+// var gui = new dat.GUI({ load: getPresetJSON(), preset: 'folio' });
 
-var folder_colors = gui.addFolder('Colors');
-var folder_wave = gui.addFolder('Wave');
-gui.remember(options);
+// var folder_colors = gui.addFolder('Colors');
+// var folder_wave = gui.addFolder('Wave');
+// gui.remember(options);
 
-folder_colors.addColor(options, 'line_default_color');
-folder_colors.addColor(options, 'line_active_color');
-folder_colors.addColor(options, 'bg_color');
-var controller_resolution = folder_wave.add(options, 'columns', 1, 100);
-var controller_columns = folder_wave.add(options, 'resolution', 5, 300);
-var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
-folder_wave.add(options, 'tension', 0.01, 1);
-folder_wave.add(options, 'dampen', 0.002, 0.2);
-folder_wave.add(options, 'k', 0.0025, 0.110);
-folder_wave.add(options, 'mouse_influence', .5, 4);
-folder_wave.add(options, 'click_enabled');
-folder_wave.add(options, 'click_random');
-folder_wave.add(options, 'click_strength', 100, 5000);
-controller_resolution.onChange(createGrid);
-controller_columns.onChange(createGrid);
-controller_grid_width.onChange(createGrid);
-// gui.close();
+// folder_colors.addColor(options, 'line_default_color');
+// folder_colors.addColor(options, 'line_active_color');
+// folder_colors.addColor(options, 'bg_color');
+// var controller_resolution = folder_wave.add(options, 'columns', 1, 100).step(1);
+// var controller_columns = folder_wave.add(options, 'resolution', 5, 300).step(1);
+// var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
+// folder_wave.add(options, 'tension', 0.01, 1);
+// folder_wave.add(options, 'dampen', 0.002, 0.2);
+// folder_wave.add(options, 'k', 0.0025, 0.110);
+// folder_wave.add(options, 'mouse_influence', .5, 4);
+// folder_wave.add(options, 'click', ['off', 'random', 'targeted']);
+// folder_wave.add(options, 'click_strength', 100, 5000);
+// controller_resolution.onChange(createGrid);
+// controller_columns.onChange(createGrid);
+// controller_grid_width.onChange(createGrid);
+// // gui.close();
 
 createGrid();
 animate();
@@ -139,7 +135,6 @@ function spring(posX) {
     }
 }
 
-
 var mouse = function () {
     this.x;
     this.y;
@@ -164,7 +159,9 @@ function cursorMove(e) {
         mouse.y = e.clientY - bounds.top;
     }
     mouse.speedx = mouse.x - mouse.previousx;
-    mouse.speedy = Math.abs(mouse.previousy - mouse.y);
+    if(touchStop > 300) {
+        mouse.speedx = 10
+    }
     mouse.segment = Math.floor((options.resolution / h) * mouse.y);
     mouse.column = Math.floor(mouse.x / w * options.columns);
 
@@ -190,13 +187,16 @@ function cursorMove(e) {
 
 window.addEventListener("mousemove", cursorMove);
 window.addEventListener("touchmove", cursorMove);
+window.addEventListener("touchend", function() {
+    touchStop = Date.now() - start;
+});
 
 document.addEventListener('click', function () {
-    if (options.click_enabled) {
+    if (options.click != "off") {
         for (var i = 0; i < lines.length; i++) {
-            if (options.click_random) {
+            if (options.click == "random") {
                 lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-            } else {
+            } else if (options.click == "targeted") {
                 lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
 
             }
@@ -206,8 +206,6 @@ document.addEventListener('click', function () {
         }
     }
 }, false);
-
-
 
 function getPresetJSON() {
     return {
@@ -222,7 +220,7 @@ function getPresetJSON() {
         "columns": 7.994657935550578,
         "click_strength": 3000,
         "mouse_influence": 1,
-        "preset": "light, low-res",
+        "preset": "folio",
         "remembered": {
             "Preset1": {
                 "0": {
@@ -235,6 +233,7 @@ function getPresetJSON() {
                     "tension": 0.5821971394106497,
                     "dampen": 0.2,
                     "k": 0.021951145958986732,
+                    "click": "random",
                     "mouse_influence": 1,
                     "click_strength": 3000
                 }
@@ -255,7 +254,7 @@ function getPresetJSON() {
                     "click_strength": 878.528347406514
                 }
             },
-            "marco-baldessari": {
+            "folio": {
                 "0": {
                     "line_default_color": "#f2f2f2",
                     "line_active_color": "#787878",
@@ -267,6 +266,7 @@ function getPresetJSON() {
                     "dampen": 0.05747957952783044,
                     "k": 0.021951145958986732,
                     "mouse_influence": 1,
+                    "click": "random",
                     "click_strength": 1000
                 }
             },

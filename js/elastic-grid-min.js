@@ -1,63 +1,19 @@
-var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, shower = false, options, lines, linePosition = 550;
+var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, touchStop, shower = false, options, lines, start = Date.now();
 
 options = {
-    line_default_color: "#000000",
-    line_active_color: "#0000FF",
+    line_default_color: "#f2f2f2",
+    line_active_color: "#787878",
     bg_color: "#FFFFFF",
+    columns: 7.994657935550578,
+    resolution: 22.589178011373427,
     grid_width: 1,
-    resolution: 100,
-    tension: .22,
-    dampen: .2,
-    k: .075,
-    columns: 8,
-    click_enabled: true,
-    click_random: false,
-    click_strength: 1e3,
-    mouse_influence: 1
+    tension: .1672945028433569,
+    dampen: .05747957952783044,
+    k: .021951145958986732,
+    mouse_influence: 1,
+    click: "random",
+    click_strength: 1e3
 };
-
-var gui = new dat.GUI({
-    load: getPresetJSON(),
-    preset: "light, low-res"
-});
-
-var folder_colors = gui.addFolder("Colors");
-
-var folder_wave = gui.addFolder("Wave");
-
-gui.remember(options);
-
-folder_colors.addColor(options, "line_default_color");
-
-folder_colors.addColor(options, "line_active_color");
-
-folder_colors.addColor(options, "bg_color");
-
-var controller_resolution = folder_wave.add(options, "columns", 1, 100);
-
-var controller_columns = folder_wave.add(options, "resolution", 5, 300);
-
-var controller_grid_width = folder_wave.add(options, "grid_width", 1, 200);
-
-folder_wave.add(options, "tension", .01, 1);
-
-folder_wave.add(options, "dampen", .002, .2);
-
-folder_wave.add(options, "k", .0025, .11);
-
-folder_wave.add(options, "mouse_influence", .5, 4);
-
-folder_wave.add(options, "click_enabled");
-
-folder_wave.add(options, "click_random");
-
-folder_wave.add(options, "click_strength", 100, 5e3);
-
-controller_resolution.onChange(createGrid);
-
-controller_columns.onChange(createGrid);
-
-controller_grid_width.onChange(createGrid);
 
 createGrid();
 
@@ -166,7 +122,9 @@ function cursorMove(e) {
         mouse.y = e.clientY - bounds.top;
     }
     mouse.speedx = mouse.x - mouse.previousx;
-    mouse.speedy = Math.abs(mouse.previousy - mouse.y);
+    if (touchStop > 300) {
+        mouse.speedx = 10;
+    }
     mouse.segment = Math.floor(options.resolution / h * mouse.y);
     mouse.column = Math.floor(mouse.x / w * options.columns);
     if (mouse.column < mouse.previouscolumn) {
@@ -196,12 +154,16 @@ window.addEventListener("mousemove", cursorMove);
 
 window.addEventListener("touchmove", cursorMove);
 
+window.addEventListener("touchend", function() {
+    touchStop = Date.now() - start;
+});
+
 document.addEventListener("click", function() {
-    if (options.click_enabled) {
+    if (options.click != "off") {
         for (var e = 0; e < lines.length; e++) {
-            if (options.click_random) {
+            if (options.click == "random") {
                 lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-            } else {
+            } else if (options.click == "targeted") {
                 lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
             }
             var o = new TimelineLite();
@@ -227,7 +189,7 @@ function getPresetJSON() {
         columns: 7.994657935550578,
         click_strength: 3e3,
         mouse_influence: 1,
-        preset: "light, low-res",
+        preset: "folio",
         remembered: {
             Preset1: {
                 "0": {
@@ -240,6 +202,7 @@ function getPresetJSON() {
                     tension: .5821971394106497,
                     dampen: .2,
                     k: .021951145958986732,
+                    click: "random",
                     mouse_influence: 1,
                     click_strength: 3e3
                 }
@@ -260,7 +223,7 @@ function getPresetJSON() {
                     click_strength: 878.528347406514
                 }
             },
-            "marco-baldessari": {
+            folio: {
                 "0": {
                     line_default_color: "#f2f2f2",
                     line_active_color: "#787878",
@@ -272,6 +235,7 @@ function getPresetJSON() {
                     dampen: .05747957952783044,
                     k: .021951145958986732,
                     mouse_influence: 1,
+                    click: "random",
                     click_strength: 1e3
                 }
             },
