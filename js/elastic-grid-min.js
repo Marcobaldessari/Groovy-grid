@@ -1,4 +1,4 @@
-var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, touchStop, shower = false, options, lines, start = Date.now();
+var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, touchStop, ax, ay, az, pax, pay, paz, options, lines, start = Date.now();
 
 options = {
     line_default_color: "#f2f2f2",
@@ -14,6 +14,47 @@ options = {
     click: "random",
     click_strength: 1e3
 };
+
+var gui = new dat.GUI({
+    load: getPresetJSON(),
+    preset: "folio"
+});
+
+var folder_colors = gui.addFolder("Colors");
+
+var folder_wave = gui.addFolder("Wave");
+
+gui.remember(options);
+
+folder_colors.addColor(options, "line_default_color");
+
+folder_colors.addColor(options, "line_active_color");
+
+folder_colors.addColor(options, "bg_color");
+
+var controller_resolution = folder_wave.add(options, "columns", 1, 100).step(1);
+
+var controller_columns = folder_wave.add(options, "resolution", 5, 300).step(1);
+
+var controller_grid_width = folder_wave.add(options, "grid_width", 1, 200);
+
+folder_wave.add(options, "tension", .01, 1);
+
+folder_wave.add(options, "dampen", .002, .2);
+
+folder_wave.add(options, "k", .0025, .11);
+
+folder_wave.add(options, "mouse_influence", .5, 4);
+
+folder_wave.add(options, "click", [ "off", "random", "targeted" ]);
+
+folder_wave.add(options, "click_strength", 100, 5e3);
+
+controller_resolution.onChange(createGrid);
+
+controller_columns.onChange(createGrid);
+
+controller_grid_width.onChange(createGrid);
 
 createGrid();
 
@@ -37,6 +78,7 @@ function animate() {
     ctx.fillStyle = options.bg_color;
     ctx.rect(0, 0, w, h);
     ctx.fill();
+    shakeListener();
     for (var e = 0; e < options.columns - 1; e++) {
         lines[e].update();
     }
@@ -55,16 +97,16 @@ function Line(e) {
             this.segments[e].update();
         }
         var o = new Array(this.segments.length);
-        var s = new Array(this.segments.length);
-        for (var t = 0; t < 8; t++) {
+        var t = new Array(this.segments.length);
+        for (var n = 0; n < 8; n++) {
             for (e = 0; e < this.segments.length; e++) {
                 if (e > 0) {
                     o[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
                     this.segments[e - 1].speed += o[e];
                 }
                 if (e < this.segments.length - 1) {
-                    s[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
-                    this.segments[e + 1].speed += s[e];
+                    t[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
+                    this.segments[e + 1].speed += t[e];
                 }
             }
             for (e = 0; e < this.segments[e].length; e++) {
@@ -72,7 +114,7 @@ function Line(e) {
                     this.segments[e - 1].height += o[e];
                 }
                 if (e < segments.length - 1) {
-                    this.segments[e + 1].height += s[e];
+                    this.segments[e + 1].height += t[e];
                 }
             }
         }
@@ -159,22 +201,51 @@ window.addEventListener("touchend", function() {
 });
 
 document.addEventListener("click", function() {
-    if (options.click != "off") {
-        for (var e = 0; e < lines.length; e++) {
-            if (options.click == "random") {
-                lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-            } else if (options.click == "targeted") {
-                lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
+    if (w >= 460) {
+        if (options.click != "off") {
+            for (var e = 0; e < lines.length; e++) {
+                if (options.click == "random") {
+                    lines[e].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+                } else if (options.click == "targeted") {
+                    lines[e].segments[mouse.segment].speed = Math.sign(lines[e].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs(lines[e].posX - mouse.x), 100));
+                }
+                var o = new TimelineLite();
+                o.to(lines[e], .001, {
+                    color: options.line_active_color
+                }).to(lines[e], .8, {
+                    color: options.line_default_color
+                });
             }
-            var o = new TimelineLite();
-            o.to(lines[e], .001, {
-                color: options.line_active_color
-            }).to(lines[e], .8, {
-                color: options.line_default_color
-            });
         }
     }
 }, false);
+
+function shakeListener() {
+    if (window.DeviceMotionEvent != undefined) {
+        window.ondevicemotion = function(e) {
+            ax = event.accelerationIncludingGravity.x;
+            ay = event.accelerationIncludingGravity.y;
+            az = event.accelerationIncludingGravity.z;
+        };
+        var e = Math.abs(ax - pax);
+        var o = Math.abs(ay - pay);
+        var t = Math.abs(az - paz);
+        if (e + o + t > 20) {
+            for (var n = 0; n < lines.length; n++) {
+                lines[n].segments[Math.floor(Math.random() * options.resolution)].speed = 40;
+                var s = new TimelineLite();
+                s.to(lines[n], .001, {
+                    color: options.line_active_color
+                }).to(lines[n], .8, {
+                    color: options.line_default_color
+                });
+            }
+        }
+        pax = ax;
+        pay = ay;
+        paz = az;
+    }
+}
 
 function getPresetJSON() {
     return {

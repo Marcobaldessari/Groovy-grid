@@ -2,8 +2,7 @@
 var canvas = document.getElementById('canvas'),
     w, h,
     ctx = canvas.getContext('2d'),
-    mouse, touchStop,
-    shower = false,
+    mouse, touchStop, ax, ay, az, pax, pay, paz,
     options,
     lines,
     start = Date.now();
@@ -23,28 +22,28 @@ options = {
     "click_strength": 1000
 }
 
-// var gui = new dat.GUI({ load: getPresetJSON(), preset: 'folio' });
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'folio' });
 
-// var folder_colors = gui.addFolder('Colors');
-// var folder_wave = gui.addFolder('Wave');
-// gui.remember(options);
+var folder_colors = gui.addFolder('Colors');
+var folder_wave = gui.addFolder('Wave');
+gui.remember(options);
 
-// folder_colors.addColor(options, 'line_default_color');
-// folder_colors.addColor(options, 'line_active_color');
-// folder_colors.addColor(options, 'bg_color');
-// var controller_resolution = folder_wave.add(options, 'columns', 1, 100).step(1);
-// var controller_columns = folder_wave.add(options, 'resolution', 5, 300).step(1);
-// var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
-// folder_wave.add(options, 'tension', 0.01, 1);
-// folder_wave.add(options, 'dampen', 0.002, 0.2);
-// folder_wave.add(options, 'k', 0.0025, 0.110);
-// folder_wave.add(options, 'mouse_influence', .5, 4);
-// folder_wave.add(options, 'click', ['off', 'random', 'targeted']);
-// folder_wave.add(options, 'click_strength', 100, 5000);
-// controller_resolution.onChange(createGrid);
-// controller_columns.onChange(createGrid);
-// controller_grid_width.onChange(createGrid);
-// // gui.close();
+folder_colors.addColor(options, 'line_default_color');
+folder_colors.addColor(options, 'line_active_color');
+folder_colors.addColor(options, 'bg_color');
+var controller_resolution = folder_wave.add(options, 'columns', 1, 100).step(1);
+var controller_columns = folder_wave.add(options, 'resolution', 5, 300).step(1);
+var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
+folder_wave.add(options, 'tension', 0.01, 1);
+folder_wave.add(options, 'dampen', 0.002, 0.2);
+folder_wave.add(options, 'k', 0.0025, 0.110);
+folder_wave.add(options, 'mouse_influence', .5, 4);
+folder_wave.add(options, 'click', ['off', 'random', 'targeted']);
+folder_wave.add(options, 'click_strength', 100, 5000);
+controller_resolution.onChange(createGrid);
+controller_columns.onChange(createGrid);
+controller_grid_width.onChange(createGrid);
+// gui.close();
 
 createGrid();
 animate();
@@ -63,9 +62,13 @@ window.addEventListener('resize', createGrid, false);
 
 function animate() {
     ctx.clearRect(0, 0, w, h);
+    // ctx.save();
     ctx.fillStyle = options.bg_color;
     ctx.rect(0, 0, w, h);
     ctx.fill();
+    // ctx.restore();
+
+    shakeListener();
     for (var i = 0; i < options.columns - 1; i++) {
         lines[i].update();
     }
@@ -159,7 +162,7 @@ function cursorMove(e) {
         mouse.y = e.clientY - bounds.top;
     }
     mouse.speedx = mouse.x - mouse.previousx;
-    if(touchStop > 300) {
+    if (touchStop > 300) {
         mouse.speedx = 10
     }
     mouse.segment = Math.floor((options.resolution / h) * mouse.y);
@@ -187,25 +190,51 @@ function cursorMove(e) {
 
 window.addEventListener("mousemove", cursorMove);
 window.addEventListener("touchmove", cursorMove);
-window.addEventListener("touchend", function() {
+window.addEventListener("touchend", function () {
     touchStop = Date.now() - start;
 });
 
 document.addEventListener('click', function () {
-    if (options.click != "off") {
-        for (var i = 0; i < lines.length; i++) {
-            if (options.click == "random") {
-                lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
-            } else if (options.click == "targeted") {
-                lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
+    if (w >= 460) {
+        if (options.click != "off") {
+            for (var i = 0; i < lines.length; i++) {
+                if (options.click == "random") {
+                    lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = options.click_strength / 10;
+                } else if (options.click == "targeted") {
+                    lines[i].segments[mouse.segment].speed = Math.sign(lines[i].posX - mouse.x) * options.click_strength / Math.sqrt(Math.max(Math.abs((lines[i].posX - mouse.x)), 100));
 
+                }
+                var animationColor = new TimelineLite();
+                animationColor.to(lines[i], .001, { color: options.line_active_color })
+                    .to(lines[i], .8, { color: options.line_default_color });
             }
-            var animationColor = new TimelineLite();
-            animationColor.to(lines[i], .001, { color: options.line_active_color })
-                .to(lines[i], .8, { color: options.line_default_color });
         }
     }
 }, false);
+
+function shakeListener() {
+    if (window.DeviceMotionEvent != undefined) {
+        window.ondevicemotion = function (e) {
+            ax = event.accelerationIncludingGravity.x;
+            ay = event.accelerationIncludingGravity.y;
+            az = event.accelerationIncludingGravity.z;
+        }
+        var axdelta = Math.abs(ax - pax);
+        var aydelta = Math.abs(ay - pay);
+        var azdelta = Math.abs(az - paz);
+
+        if (axdelta + aydelta + azdelta > 20) {
+            for (var i = 0; i < lines.length; i++) {
+                lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = 40;
+                var animationColor = new TimelineLite();
+                animationColor.to(lines[i], .001, { color: options.line_active_color }).to(lines[i], .8, { color: options.line_default_color });
+            }
+        }
+        pax = ax;
+        pay = ay;
+        paz = az;
+    }
+}
 
 function getPresetJSON() {
     return {
