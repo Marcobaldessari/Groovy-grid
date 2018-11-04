@@ -1,23 +1,24 @@
 var canvas = document.getElementById("canvas"), w, h, ctx = canvas.getContext("2d"), mouse, touchStop, ax, ay, az, pax, pay, paz, options, lines, start = Date.now();
 
-options = {
-    line_default_color: "#f2f2f2",
-    line_active_color: "#787878",
-    bg_color: "#FFFFFF",
-    columns: 7.994657935550578,
-    resolution: 22.589178011373427,
-    grid_width: 1,
-    tension: .1672945028433569,
-    dampen: .05747957952783044,
-    k: .021951145958986732,
-    mouse_influence: 1,
-    click: "random",
-    click_strength: 1e3
-};
+var options = new function() {
+    this.line_default_color = "#f2f2f2";
+    this.line_active_color = "#787878";
+    this.bg_color = "#FFFFFF";
+    this.columns = 16;
+    this.resolution = 22.589178011373427;
+    this.grid_width = 1;
+    this.tension = .1672945028433569;
+    this.dampen = .05747957952783044;
+    this.color_decay = 1;
+    this.k = .021951145958986732;
+    this.mouse_influence = 1;
+    this.click = "random";
+    this.click_strength = 100;
+}();
 
 var gui = new dat.GUI({
     load: getPresetJSON(),
-    preset: "folio"
+    preset: "acid"
 });
 
 var folder_colors = gui.addFolder("Colors");
@@ -26,7 +27,7 @@ var folder_wave = gui.addFolder("Wave");
 
 gui.remember(options);
 
-folder_colors.addColor(options, "line_default_color");
+var controller_line_default_color = folder_colors.addColor(options, "line_default_color");
 
 folder_colors.addColor(options, "line_active_color");
 
@@ -42,6 +43,8 @@ folder_wave.add(options, "tension", .01, 1);
 
 folder_wave.add(options, "dampen", .002, .2);
 
+folder_wave.add(options, "color_decay", .4, 4);
+
 folder_wave.add(options, "k", .0025, .11);
 
 folder_wave.add(options, "mouse_influence", .5, 4);
@@ -49,6 +52,8 @@ folder_wave.add(options, "mouse_influence", .5, 4);
 folder_wave.add(options, "click", [ "off", "random", "targeted" ]);
 
 folder_wave.add(options, "click_strength", 100, 5e3);
+
+controller_line_default_color.onChange(createGrid);
 
 controller_resolution.onChange(createGrid);
 
@@ -98,12 +103,10 @@ function Line(e) {
         }
         var o = new Array(this.segments.length);
         var t = new Array(this.segments.length);
-        for (var n = 0; n < 8; n++) {
+        for (var n = 0; n < 10; n++) {
             for (e = 0; e < this.segments.length; e++) {
-                if (e > 0) {
-                    o[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
-                    this.segments[e - 1].speed += o[e];
-                }
+                o[e] = options.k * (this.segments[e].height - this.segments[e - 1].height);
+                this.segments[e - 1].speed += o[e];
                 if (e < this.segments.length - 1) {
                     t[e] = options.k * (this.segments[e].height - this.segments[e + 1].height);
                     this.segments[e + 1].speed += t[e];
@@ -174,7 +177,7 @@ function cursorMove(e) {
         var o = new TimelineLite();
         o.to(lines[mouse.column], .001, {
             color: options.line_active_color
-        }).to(lines[mouse.column], .8, {
+        }).to(lines[mouse.column], options.color_decay, {
             color: options.line_default_color
         });
     }
@@ -183,7 +186,7 @@ function cursorMove(e) {
         var o = new TimelineLite();
         o.to(lines[mouse.column - 1], .001, {
             color: options.line_active_color
-        }).to(lines[mouse.column - 1], .8, {
+        }).to(lines[mouse.column - 1], options.color_decay, {
             color: options.line_default_color
         });
     }
@@ -212,7 +215,7 @@ document.addEventListener("click", function() {
                 var o = new TimelineLite();
                 o.to(lines[e], .001, {
                     color: options.line_active_color
-                }).to(lines[e], .8, {
+                }).to(lines[e], options.color_decay, {
                     color: options.line_default_color
                 });
             }
@@ -236,7 +239,7 @@ function shakeListener() {
                 var s = new TimelineLite();
                 s.to(lines[n], .001, {
                     color: options.line_active_color
-                }).to(lines[n], .8, {
+                }).to(lines[n], options.color_decay, {
                     color: options.line_default_color
                 });
             }
@@ -249,18 +252,6 @@ function shakeListener() {
 
 function getPresetJSON() {
     return {
-        line_default_color: "#ebebeb",
-        line_active_color: "#787878",
-        bg_color: "#FFFFFF",
-        grid_width: 1,
-        resolution: 22.589178011373427,
-        tension: .5821971394106497,
-        dampen: .2,
-        k: .021951145958986732,
-        columns: 7.994657935550578,
-        click_strength: 3e3,
-        mouse_influence: 1,
-        preset: "folio",
         remembered: {
             Preset1: {
                 "0": {
@@ -296,10 +287,10 @@ function getPresetJSON() {
             },
             folio: {
                 "0": {
-                    line_default_color: "#f2f2f2",
-                    line_active_color: "#787878",
+                    line_default_color: "#e1e1e1",
+                    line_active_color: "004DC6",
                     bg_color: "#FFFFFF",
-                    columns: 7.994657935550578,
+                    columns: 16,
                     resolution: 22.589178011373427,
                     grid_width: 1,
                     tension: .1672945028433569,

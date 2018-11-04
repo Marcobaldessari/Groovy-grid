@@ -7,28 +7,45 @@ var canvas = document.getElementById('canvas'),
     lines,
     start = Date.now();
 
-options = {
-    "line_default_color": "#f2f2f2",
-    "line_active_color": "#787878",
-    "bg_color": "#FFFFFF",
-    "columns": 7.994657935550578,
-    "resolution": 22.589178011373427,
-    "grid_width": 1,
-    "tension": 0.1672945028433569,
-    "dampen": 0.05747957952783044,
-    "k": 0.021951145958986732,
-    "mouse_influence": 1,
-    "click": "random",
-    "click_strength": 1000
+// options = {
+//     "line_default_color": "#f2f2f2",
+//     "line_active_color": "#787878",
+//     "bg_color": "#FFFFFF",
+//     "columns": 7.994657935550578,
+//     "resolution": 22.589178011373427,
+//     "grid_width": 1,
+//     "tension": 0.1672945028433569,
+//     "dampen": 0.05747957952783044,
+//     "color_decay": 1,
+//     "k": 0.021951145958986732,
+//     "mouse_influence": 1,
+//     "click": "random",
+//     "click_strength": 1000
+// }
+
+var options = new function() {
+    this.line_default_color = "#f2f2f2";
+    this.line_active_color = "#787878";
+    this.bg_color = "#FFFFFF";
+    this.columns = 16;
+    this.resolution = 22.589178011373427;
+    this.grid_width = 1;
+    this.tension = 0.1672945028433569;
+    this.dampen = 0.05747957952783044;
+    this.color_decay = 1;
+    this.k = 0.021951145958986732;
+    this.mouse_influence = 1;
+    this.click = "random";
+    this.click_strength = 100;
 }
 
-var gui = new dat.GUI({ load: getPresetJSON(), preset: 'folio' });
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'acid' });
 
 var folder_colors = gui.addFolder('Colors');
 var folder_wave = gui.addFolder('Wave');
 gui.remember(options);
 
-folder_colors.addColor(options, 'line_default_color');
+var controller_line_default_color = folder_colors.addColor(options, 'line_default_color');
 folder_colors.addColor(options, 'line_active_color');
 folder_colors.addColor(options, 'bg_color');
 var controller_resolution = folder_wave.add(options, 'columns', 1, 100).step(1);
@@ -36,10 +53,12 @@ var controller_columns = folder_wave.add(options, 'resolution', 5, 300).step(1);
 var controller_grid_width = folder_wave.add(options, 'grid_width', 1, 200);
 folder_wave.add(options, 'tension', 0.01, 1);
 folder_wave.add(options, 'dampen', 0.002, 0.2);
+folder_wave.add(options, 'color_decay', .4, 4);
 folder_wave.add(options, 'k', 0.0025, 0.110);
 folder_wave.add(options, 'mouse_influence', .5, 4);
 folder_wave.add(options, 'click', ['off', 'random', 'targeted']);
 folder_wave.add(options, 'click_strength', 100, 5000);
+controller_line_default_color.onChange(createGrid);
 controller_resolution.onChange(createGrid);
 controller_columns.onChange(createGrid);
 controller_grid_width.onChange(createGrid);
@@ -92,12 +111,12 @@ function Line(posX) {
         var ldelta = new Array(this.segments.length);
         var rdelta = new Array(this.segments.length);
 
-        for (var j = 0; j < 8; j++) {
+        for (var j = 0; j < 10; j++) {
             for (i = 0; i < this.segments.length; i++) {
-                if (i > 0) {
+                // if (i > 0) {
                     ldelta[i] = options.k * (this.segments[i].height - this.segments[i - 1].height);
                     this.segments[i - 1].speed += ldelta[i];
-                }
+                // }
                 if (i < this.segments.length - 1) {
                     rdelta[i] = options.k * (this.segments[i].height - this.segments[i + 1].height);
                     this.segments[i + 1].speed += rdelta[i];
@@ -173,14 +192,14 @@ function cursorMove(e) {
         lines[mouse.column].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
         var animationColor = new TimelineLite();
         animationColor.to(lines[mouse.column], .001, { color: options.line_active_color })
-            .to(lines[mouse.column], .8, { color: options.line_default_color });
+            .to(lines[mouse.column], options.color_decay, { color: options.line_default_color });
     }
 
     if (mouse.column > mouse.previouscolumn) {
         lines[mouse.column - 1].segments[mouse.segment].speed = mouse.speedx * options.mouse_influence;
         var animationColor = new TimelineLite();
         animationColor.to(lines[mouse.column - 1], .001, { color: options.line_active_color })
-            .to(lines[mouse.column - 1], .8, { color: options.line_default_color });
+            .to(lines[mouse.column - 1], options.color_decay, { color: options.line_default_color });
     }
 
     mouse.previousx = mouse.x;
@@ -206,7 +225,7 @@ document.addEventListener('click', function () {
                 }
                 var animationColor = new TimelineLite();
                 animationColor.to(lines[i], .001, { color: options.line_active_color })
-                    .to(lines[i], .8, { color: options.line_default_color });
+                    .to(lines[i], options.color_decay, { color: options.line_default_color });
             }
         }
     }
@@ -227,7 +246,7 @@ function shakeListener() {
             for (var i = 0; i < lines.length; i++) {
                 lines[i].segments[Math.floor(Math.random() * options.resolution)].speed = 40;
                 var animationColor = new TimelineLite();
-                animationColor.to(lines[i], .001, { color: options.line_active_color }).to(lines[i], .8, { color: options.line_default_color });
+                animationColor.to(lines[i], .001, { color: options.line_active_color }).to(lines[i], options.color_decay, { color: options.line_default_color });
             }
         }
         pax = ax;
@@ -238,18 +257,6 @@ function shakeListener() {
 
 function getPresetJSON() {
     return {
-        "line_default_color": "#ebebeb",
-        "line_active_color": "#787878",
-        "bg_color": "#FFFFFF",
-        "grid_width": 1,
-        "resolution": 22.589178011373427,
-        "tension": 0.5821971394106497,
-        "dampen": 0.2,
-        "k": 0.021951145958986732,
-        "columns": 7.994657935550578,
-        "click_strength": 3000,
-        "mouse_influence": 1,
-        "preset": "folio",
         "remembered": {
             "Preset1": {
                 "0": {
@@ -285,10 +292,10 @@ function getPresetJSON() {
             },
             "folio": {
                 "0": {
-                    "line_default_color": "#f2f2f2",
-                    "line_active_color": "#787878",
+                    "line_default_color": "#e1e1e1",
+                    "line_active_color": "004DC6",
                     "bg_color": "#FFFFFF",
-                    "columns": 7.994657935550578,
+                    "columns": 16,
                     "resolution": 22.589178011373427,
                     "grid_width": 1,
                     "tension": 0.1672945028433569,
